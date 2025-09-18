@@ -19,12 +19,9 @@ namespace gameroombookingsys
 
             modelBuilder.Entity<RoomBooking>(entity =>
             {
-                entity.Property(e => e.BookingDateTime)
-               .HasColumnType("datetime2");
-
-                // Update Duration column to be a float (SQL Server float corresponds to a C# double)
-                entity.Property(e => e.Duration)
-                    .HasColumnType("float");
+                // Let provider pick appropriate types on PostgreSQL
+                // entity.Property(e => e.BookingDateTime).HasColumnType("datetime2");
+                // entity.Property(e => e.Duration).HasColumnType("float");
             });
 
             modelBuilder.Entity<RoomBooking>()

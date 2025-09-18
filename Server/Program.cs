@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 using gameroombookingsys.IService;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 var builder = WebApplication.CreateBuilder(args);
@@ -24,9 +25,9 @@ var apiTitle = "Game Room Booking API";
 var apiVersion = "v1";  
 var frontEndUrl = "http://localhost:5173";
 
-// Setup Database Context
+// Setup Database Context (PostgreSQL)
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseNpgsql(connectionString));
 
 // Repository & service registration
 builder.Services.AddScoped<IPlayersRepository, PlayersRepository>();
@@ -128,6 +129,17 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Apply automatic database creation in Development for PostgreSQL
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    if (db.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true
+        && app.Environment.IsDevelopment())
+    {
+        db.Database.EnsureCreated();
+    }
+}
+
 // Apply Middleware
 app.UseCors(allowFrontEndCors);
 
@@ -141,7 +153,12 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// Avoid HTTPS redirection in development/containers where HTTPS isn't configured
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
